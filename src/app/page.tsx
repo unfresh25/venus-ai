@@ -19,7 +19,7 @@ export default function Home() {
       <AIPresenter onTranscription={handleTranscription} />
       
       {/* Panel de control opcional */}
-      {lastTranscription && (
+      {/* {lastTranscription && (
         <div style={{
           position: 'fixed',
           top: '20px',
@@ -35,15 +35,7 @@ export default function Home() {
           <h4>Última transcripción:</h4>
           <p>{lastTranscription}</p>
         </div>
-      )}
+      )} */}
     </main>
   );
 }
-
-// "use client"
-
-// import SpeechToText from '@/components/SpeechToText';
-
-// export default function Page() {
-//   return <SpeechToText />;
-// }
