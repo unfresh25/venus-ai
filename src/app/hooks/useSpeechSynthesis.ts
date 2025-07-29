@@ -1,4 +1,3 @@
-// hooks/useSpeechSynthesis.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface SpeechCallbacks {
@@ -24,7 +23,6 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Inicializar síntesis de voz
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       setIsSupported(true);
@@ -33,7 +31,6 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
         const voices = speechSynthesis.getVoices();
         setAvailableVoices(voices);
         
-        // Buscar una voz en español
         const spanishVoice = voices.find(voice => 
           voice.lang.startsWith('es') || 
           voice.name.toLowerCase().includes('spanish') ||
@@ -55,26 +52,21 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     }
   }, [selectedVoice]);
 
-  // Función para hablar texto
   const speakText = useCallback((text: string, callbacks?: SpeechCallbacks) => {
     if (!isSupported || !text.trim()) return;
     
-    // Cancelar cualquier síntesis anterior
     speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Configurar voz
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     }
     
-    // Configurar parámetros
     utterance.rate = 0.9;
     utterance.pitch = 1.1;
     utterance.volume = 1;
     
-    // Event handlers
     utterance.onstart = () => {
       setIsSpeaking(true);
       if (callbacks?.onStart) callbacks.onStart();
@@ -95,7 +87,6 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     speechSynthesis.speak(utterance);
   }, [isSupported, selectedVoice]);
 
-  // Función para detener la síntesis
   const stopSpeaking = useCallback(() => {
     if (isSpeaking) {
       speechSynthesis.cancel();
@@ -103,7 +94,6 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     }
   }, [isSpeaking]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (speechSynthesis) {

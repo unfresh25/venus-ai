@@ -1,4 +1,3 @@
-// types/speech-recognition.d.ts
 interface SpeechRecognition extends EventTarget {
     continuous: boolean;
     grammars: SpeechGrammarList;

@@ -1,4 +1,3 @@
-// components/StatusDisplay.tsx
 import React from 'react';
 import styles from '../aiPresenter.module.css';
 

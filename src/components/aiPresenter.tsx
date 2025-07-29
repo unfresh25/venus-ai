@@ -6,13 +6,24 @@ import { useSpeechSynthesis } from '../app/hooks/useSpeechSynthesis';
 import { useResponseGenerator } from '../app/hooks/useResponseGenerator';
 import { AIVisualizer } from '@/components/visualizer/aiVisualizer';
 import { StatusDisplay } from '@/components/visualizer/statusDisplay';
-import { TranscriptDisplay } from '@/components/visualizer/transcriptDisplay';
 import styles from '@/components/aiPresenter.module.css';
+
+interface Participant {
+  id: number;
+  name: string;
+  talent: string;
+  score: number;
+  hasPerformed: boolean;
+}
 
 interface AIPresenterProps {
   className?: string;
   onTranscription?: (text: string) => void;
   onResponse?: (response: string) => void;
+  participants?: Participant[];
+  currentParticipant?: number | null;
+  nextParticipant?: Participant;
+  onUpdateScore?: (id: number, score: number) => void;
 }
 
 export type AIState = 'thinking' | 'speaking' | 'listening';
@@ -20,14 +31,17 @@ export type AIState = 'thinking' | 'speaking' | 'listening';
 const AIPresenter: React.FC<AIPresenterProps> = ({ 
   className = '', 
   onTranscription, 
-  onResponse 
+  onResponse,
+  participants = [],
+  currentParticipant,
+  nextParticipant,
+  onUpdateScore
 }) => {
   const [currentState, setCurrentState] = useState<AIState>('thinking');
   const [statusMessage, setStatusMessage] = useState('Listo para interactuar');
   const [transcript, setTranscript] = useState('');
   const [lastResponse, setLastResponse] = useState('');
 
-  // Custom hooks
   const { generateResponse, isGenerating, error } = useResponseGenerator();
   
   const {
@@ -71,7 +85,45 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
     }
   });
 
-  // Procesar transcripción y generar respuesta
+  const generateShowContext = useCallback(() => {
+    const performedCount = participants.filter(p => p.hasPerformed).length;
+    const totalParticipants = participants.length;
+    const averageScore = performedCount > 0 
+      ? participants.filter(p => p.hasPerformed).reduce((sum, p) => sum + p.score, 0) / performedCount 
+      : 0;
+
+    let context = `Eres Venus, la presentadora del show de talentos para el cumpleaños de Angie. `;
+    
+    if (totalParticipants > 0) {
+      context += `Hay ${totalParticipants} participantes: ${participants.map(p => `${p.name} (${p.talent})`).join(', ')}. `;
+      
+      if (performedCount > 0) {
+        context += `Ya han presentado ${performedCount} participantes con un promedio de ${averageScore.toFixed(1)} puntos. `;
+        
+        const topScorer = participants
+          .filter(p => p.hasPerformed)
+          .sort((a, b) => b.score - a.score)[0];
+        
+        if (topScorer) {
+          context += `${topScorer.name} lidera con ${topScorer.score} puntos. `;
+        }
+      }
+      
+      if (nextParticipant) {
+        context += `El próximo participante es ${nextParticipant.name} con "${nextParticipant.talent}". `;
+      }
+      
+      if (performedCount === totalParticipants) {
+        context += `¡Todas las presentaciones han terminado! `;
+      }
+    }
+
+    context += `Puedes recibir puntuaciones diciéndote cosas como "el puntaje de [nombre] es [número]" o "[nombre] obtiene [número] puntos". `;
+    context += `Mantén un tono alegre y festivo como presentadora de show. Responde de manera breve y entusiasta.`;
+
+    return context;
+  }, [participants, nextParticipant]);
+
   const processTranscription = useCallback(async (text: string) => {
     if (!text.trim()) return;
     
@@ -79,20 +131,22 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
     setStatusMessage(isGenerating ? 'Pensando con IA...' : 'Generando respuesta...');
     
     try {
-      const response = await generateResponse(text);
+      const showContext = generateShowContext();
+      const fullPrompt = `${showContext}\n\nUsuario dice: "${text}"`;
+      
+      const response = await generateResponse(fullPrompt);
       setLastResponse(response);
       
       if (onResponse) onResponse(response);
       
-      // Hablar la respuesta
       speakText(response, {
         onStart: () => {
           setCurrentState('speaking');
-          setStatusMessage('Hablando...');
+          setStatusMessage('Venus está hablando...');
         },
         onEnd: () => {
           setCurrentState('thinking');
-          setStatusMessage('Listo para interactuar');
+          setStatusMessage('Venus lista para escuchar');
         },
         onError: () => {
           setCurrentState('thinking');
@@ -104,14 +158,12 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
       setCurrentState('thinking');
       setStatusMessage('Error al generar respuesta');
       
-      // Mostrar error por 3 segundos y luego volver al estado normal
       setTimeout(() => {
-        setStatusMessage('Listo para interactuar');
+        setStatusMessage('Venus lista para escuchar');
       }, 3000);
     }
-  }, [generateResponse, speakText, onResponse, isGenerating]);
+  }, [generateResponse, speakText, onResponse, isGenerating, generateShowContext]);
 
-  // Controles principales
   const startListening = useCallback(() => {
     if (!recognitionSupported) {
       setStatusMessage('Reconocimiento de voz no soportado');
@@ -133,10 +185,9 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
   const handleStopSpeaking = useCallback(() => {
     stopSpeaking();
     setCurrentState('thinking');
-    setStatusMessage('Listo para interactuar');
+    setStatusMessage('Venus lista para escuchar');
   }, [stopSpeaking]);
 
-  // Toggle entre estados
   const toggleState = useCallback(() => {
     if (isSpeaking) {
       handleStopSpeaking();
@@ -146,6 +197,18 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
       stopListening();
     }
   }, [currentState, isSpeaking, handleStopSpeaking, startListening, stopListening]);
+
+  useEffect(() => {
+    if (currentParticipant && participants.length > 0) {
+      const participant = participants.find(p => p.id === currentParticipant);
+      if (participant) {
+        setStatusMessage(`Puntuación registrada para ${participant.name}: ${participant.score}`);
+        setTimeout(() => {
+          setStatusMessage('Venus lista para escuchar');
+        }, 3000);
+      }
+    }
+  }, [currentParticipant, participants]);
 
   return (
     <div className={`${styles.container} ${className}`}>
@@ -164,18 +227,9 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
 
       <div className={styles.controlHint}>
         {recognitionSupported 
-          ? "Toca la esfera para hablar y recibir una respuesta por voz"
+          ? "Toca la esfera para hablar con Venus y dar puntuaciones"
           : "Reconocimiento de voz no disponible"
         }
-        <br />
-        <small className={styles.statusIndicators}>
-          {typeof window !== 'undefined' && location.protocol === 'http:' && location.hostname !== 'localhost'
-            ? "⚠️ Necesitas HTTPS para usar el micrófono"
-            : recognitionSupported 
-              ? `✅ Reconocimiento disponible ${speechSupported ? '🔊 Audio disponible' : '🔇 Sin audio'}` 
-              : "❌ Reconocimiento de voz no soportado"
-          }
-        </small>
       </div>
     </div>
   );

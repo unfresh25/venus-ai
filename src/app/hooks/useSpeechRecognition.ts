@@ -1,4 +1,3 @@
-// hooks/useSpeechRecognition.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface SpeechRecognitionHookProps {
@@ -28,7 +27,6 @@ export const useSpeechRecognition = ({
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 3000;
 
-  // Inicializar reconocimiento de voz
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -37,13 +35,11 @@ export const useSpeechRecognition = ({
         setIsSupported(true);
         const recognition = new SpeechRecognition();
         
-        // Configuración
         recognition.continuous = false;
         recognition.interimResults = true;
         recognition.lang = 'es-ES';
         recognition.maxAlternatives = 1;
         
-        // Event handlers
         recognition.onstart = () => {
           console.log('Reconocimiento iniciado');
           setIsListening(true);
@@ -145,7 +141,6 @@ export const useSpeechRecognition = ({
   const startListening = useCallback(() => {
     if (!isSupported || !recognitionRef.current || isListening) return;
 
-    // Verificar permisos de micrófono
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(() => {
@@ -181,7 +176,6 @@ export const useSpeechRecognition = ({
     }
   }, [isListening]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {

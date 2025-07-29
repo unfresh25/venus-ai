@@ -1,4 +1,3 @@
-// components/AIVisualizer.tsx
 import React from 'react';
 import styles from '../aiPresenter.module.css';
 
@@ -33,7 +32,6 @@ export const AIVisualizer: React.FC<AIVisualizerProps> = ({
       
       <div className={styles.groundReflection}></div>
       
-      {/* Partículas animadas */}
       <div className={styles.particle}></div>
       <div className={styles.particle}></div>
       <div className={styles.particle}></div>
