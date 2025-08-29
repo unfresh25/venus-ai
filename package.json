@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.13.0",
     "@react-three/drei": "^10.6.1",
     "@react-three/fiber": "^9.2.0",
     "lucide-react": "^0.532.0",

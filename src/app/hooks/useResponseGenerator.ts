@@ -144,34 +144,34 @@ export const useResponseGenerator = (config?: OpenAIConfig): ResponseGeneratorHo
     
     const responses = {
       greetings: [
-        "¡Hola! ¡Qué gusto saludarte!",
-        "¡Bienvenido al escenario! ¿Listo para brillar?",
-        "¡Saludos! La energía aquí está increíble.",
+        "[excited] ¡Hola! [happy] ¡Qué gusto saludarte!",
+        "[excited] ¡Bienvenido al escenario! [happy] ¿Listo para brillar?",
+        "[happy] ¡Saludos! [excited] La energía aquí está increíble.",
       ],
       
       talents: [
-        "¡Me encanta ver nuevos talentos! Cuéntame más.",
-        "¡Fantástico! El escenario es tuyo.",
-        "¡Qué emocionante! ¿Cuál es tu especialidad?",
+        "[excited] ¡Me encanta ver nuevos talentos! [happy] Cuéntame más.",
+        "[excited] ¡Fantástico! [happy] El escenario es tuyo.",
+        "[excited] ¡Qué emocionante! [happy] ¿Cuál es tu especialidad?",
       ],
       
       nerves: [
-        "Es normal sentir nervios, ¡significa que te importa!",
-        "Los nervios son energía positiva. ¡Tú puedes!",
-        "Respira profundo, el público está contigo.",
+        "[happy] Es normal sentir nervios, [excited] ¡significa que te importa!",
+        "[happy] Los nervios son energía positiva. [excited] ¡Tú puedes!",
+        "[happy] Respira profundo, [excited] el público está contigo.",
       ],
       
       gratitude: [
-        "¡Un placer! Estoy aquí para apoyarte.",
-        "¡Gracias a ti por compartir tu talento!",
-        "¡Para eso estoy! ¡Sigamos con el show!",
+        "[happy] ¡Un placer! [excited] Estoy aquí para apoyarte.",
+        "[happy] ¡Gracias a ti por compartir tu talento! [excited]",
+        "[laughing] ¡Para eso estoy! [excited] ¡Sigamos con el show!",
       ],
       
       generic: [
-        "¡Qué interesante! Cuéntame más sobre eso.",
-        "¡Me gusta tu energía! ¿Qué más tienes?",
-        "¡Fantástico! El público está cautivado.",
-        "¡Impresionante! Sigue así.",
+        "[happy] ¡Qué interesante! [excited] Cuéntame más sobre eso.",
+        "[excited] ¡Me gusta tu energía! [happy] ¿Qué más tienes?",
+        "[excited] ¡Fantástico! [happy] El público está cautivado.",
+        "[excited] ¡Impresionante! [happy] Sigue así.",
       ]
     };
     

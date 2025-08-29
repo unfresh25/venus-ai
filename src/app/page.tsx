@@ -3,12 +3,18 @@
 import { useState } from 'react';
 import AIPresenter from '@/components/aiPresenter';
 import ParticipantsList from '@/components/participantsList';
-import { initialParticipants } from '@/data/participants';
+import { useTalentShow } from '@/contexts/TalentShowContext';
 
 export default function Home() {
+  const {
+    participants,
+    currentParticipant,
+    updateParticipantScore,
+    setCurrentParticipant,
+    getNextParticipant
+  } = useTalentShow();
+
   const [lastTranscription, setLastTranscription] = useState('');
-  const [currentParticipant, setCurrentParticipant] = useState<number | null>(null);
-  const [participants, setParticipants] = useState(initialParticipants);
 
   const handleTranscription = (text: string) => {
     setLastTranscription(text);
@@ -83,22 +89,19 @@ export default function Home() {
     });
   };
 
-  const updateParticipantScore = (id: number, score: number) => {
-    setParticipants(prev => 
-      prev.map(participant => 
-        participant.id === id 
-          ? { ...participant, score, hasPerformed: true }
-          : participant
-      )
-    );
-  };
-
-  const getNextParticipant = () => {
-    return participants.find(p => !p.hasPerformed);
-  };
-
   return (
     <main className="min-h-screen bg-black">
+      {/* Control Panel Link */}
+      <div className="absolute top-4 right-4 z-10">
+        <a 
+          href="/control" 
+          target="_blank"
+          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-white font-semibold shadow-lg"
+        >
+          Panel de Control
+        </a>
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-6 p-6">
         <div className="flex-1">
           <AIPresenter 

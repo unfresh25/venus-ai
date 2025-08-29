@@ -6,15 +6,8 @@ import { useSpeechSynthesis } from '../app/hooks/useSpeechSynthesis';
 import { useResponseGenerator } from '../app/hooks/useResponseGenerator';
 import { AIVisualizer } from '@/components/visualizer/aiVisualizer';
 import { StatusDisplay } from '@/components/visualizer/statusDisplay';
+import { Participant } from '@/contexts/TalentShowContext';
 import styles from '@/components/aiPresenter.module.css';
-
-interface Participant {
-  id: number;
-  name: string;
-  talent: string;
-  score: number;
-  hasPerformed: boolean;
-}
 
 interface AIPresenterProps {
   className?: string;
@@ -139,6 +132,9 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
       
       if (onResponse) onResponse(response);
       
+      // Keep thinking state until audio actually starts playing
+      setStatusMessage('Venus está pensando...');
+      
       speakText(response, {
         onStart: () => {
           setCurrentState('speaking');
@@ -151,6 +147,9 @@ const AIPresenter: React.FC<AIPresenterProps> = ({
         onError: () => {
           setCurrentState('thinking');
           setStatusMessage('Error al reproducir audio');
+          setTimeout(() => {
+            setStatusMessage('Venus lista para escuchar');
+          }, 2000);
         }
       });
     } catch (err) {

@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { Trophy, Star, Music, Users, Edit2, Check } from 'lucide-react';
-
-interface Participant {
-  id: number;
-  name: string;
-  talent: string;
-  score: number;
-  hasPerformed: boolean;
-}
+import { Participant } from '@/contexts/TalentShowContext';
 
 interface ParticipantsListProps {
   participants: Participant[];
@@ -67,7 +60,7 @@ export default function ParticipantsList({ participants, onUpdateScore, currentP
     : 0;
 
   return (
-    <div className="bg-black/20 backdrop-blur-lg rounded-2xl p-6 border border-white/10 shadow-2xl">
+    <div className="bg-black/20 backdrop-blur-lg rounded-2xl p-6 border border-white/10 shadow-2xl h-[calc(100vh-10rem)] overflow-y-scroll">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg">
           <Users className="w-6 h-6 text-white" />

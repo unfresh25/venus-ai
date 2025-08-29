@@ -22,6 +22,7 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -52,8 +53,75 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     }
   }, [selectedVoice]);
 
-  const speakText = useCallback((text: string, callbacks?: SpeechCallbacks) => {
-    if (!isSupported || !text.trim()) return;
+  const speakWithElevenLabsTTS = useCallback(async (text: string, callbacks?: SpeechCallbacks): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/elevenlabs-tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          voiceId: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID
+        })
+      });
+      
+      if (!response.ok) {
+        console.warn('ElevenLabs TTS API failed, falling back to browser speech synthesis');
+        return false;
+      }
+      
+      const data = await response.json();
+      if (!data || !data.audio) {
+        console.warn('Invalid ElevenLabs TTS response, falling back to browser speech synthesis');
+        return false;
+      }
+
+      // Convert base64 audio to blob
+      const audioData = atob(data.audio);
+      const audioArray = new Uint8Array(audioData.length);
+      for (let i = 0; i < audioData.length; i++) {
+        audioArray[i] = audioData.charCodeAt(i);
+      }
+      const audioBlob = new Blob([audioArray], { type: data.contentType || 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      // Only call onStart when audio actually starts playing
+      audio.onplaying = () => {
+        setIsSpeaking(true);
+        if (callbacks?.onStart) callbacks.onStart();
+      };
+      
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl); // Clean up the blob URL
+        if (callbacks?.onEnd) callbacks.onEnd();
+      };
+      
+      audio.onerror = () => {
+        console.warn('ElevenLabs audio playback failed');
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl); // Clean up the blob URL
+        if (callbacks?.onError) callbacks.onError();
+      };
+      
+      await audio.play();
+      return true;
+    } catch (err) {
+      console.warn('ElevenLabs TTS error:', err);
+      if (callbacks?.onError) callbacks.onError();
+      return false;
+    }
+  }, []);
+
+  const speakWithBrowserTTS = useCallback((text: string, callbacks?: SpeechCallbacks) => {
+    if (!isSupported || !text.trim()) {
+      if (callbacks?.onError) callbacks.onError();
+      return;
+    }
     
     speechSynthesis.cancel();
     
@@ -87,7 +155,27 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     speechSynthesis.speak(utterance);
   }, [isSupported, selectedVoice]);
 
+  const speakText = useCallback(async (text: string, callbacks?: SpeechCallbacks) => {
+    if (!text.trim() || isSpeaking) return;
+    
+    // Don't set isSpeaking or call onStart here - let the actual audio events handle it
+    // Try ElevenLabs TTS first, fallback to browser TTS if it fails
+    const elevenLabsSuccess = await speakWithElevenLabsTTS(text, callbacks);
+    
+    if (!elevenLabsSuccess) {
+      // Fallback to browser speech synthesis
+      speakWithBrowserTTS(text, callbacks);
+    }
+  }, [isSpeaking, speakWithElevenLabsTTS, speakWithBrowserTTS]);
+
   const stopSpeaking = useCallback(() => {
+    // Stop ElevenLabs audio if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
+    // Stop browser speech synthesis
     if (isSpeaking) {
       speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -98,6 +186,9 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     return () => {
       if (speechSynthesis) {
         speechSynthesis.cancel();
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
       }
     };
   }, []);
