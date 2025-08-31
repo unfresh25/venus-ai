@@ -61,10 +61,11 @@ export async function POST(request: NextRequest) {
       contentType: 'audio/mpeg'
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('ElevenLabs TTS API error:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Internal server error';
     return NextResponse.json(
-      { error: err.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

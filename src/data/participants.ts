@@ -7,4 +7,5 @@ export const initialParticipants = [
     { id: 6, name: 'Laura Noriega', talent: 'Paciencia ', score: 0, hasPerformed: false },
     { id: 7, name: 'Leoximar', talent: 'Talk and Eat Show', score: 0, hasPerformed: false },
     { id: 8, name: 'Chris Miu', talent: 'El miauravilloso show de miu', score: 0, hasPerformed: false },
+    { id: 9, name: 'María Angelica Choles', talent: 'Skincare', score: 0, hasPerformed: false },
 ];

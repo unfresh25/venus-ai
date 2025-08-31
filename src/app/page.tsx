@@ -91,17 +91,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Control Panel Link */}
-      <div className="absolute top-4 right-4 z-10">
-        <a 
-          href="/control" 
-          target="_blank"
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-white font-semibold shadow-lg"
-        >
-          Panel de Control
-        </a>
-      </div>
-
       <div className="flex flex-col lg:flex-row gap-6 p-6">
         <div className="flex-1">
           <AIPresenter 

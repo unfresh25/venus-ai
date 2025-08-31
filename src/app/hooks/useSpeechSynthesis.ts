@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { AudioStreamPlayer, AudioStreamCallbacks } from '@/lib/audio-stream-player';
 
 interface SpeechCallbacks {
   onStart?: () => void;
   onEnd?: () => void;
   onError?: () => void;
+  onProgress?: (bytesReceived: number) => void;
 }
 
 interface SpeechSynthesisHookReturn {
@@ -14,6 +16,7 @@ interface SpeechSynthesisHookReturn {
   setSelectedVoice: (voice: SpeechSynthesisVoice | null) => void;
   speakText: (text: string, callbacks?: SpeechCallbacks) => void;
   stopSpeaking: () => void;
+  streamingProgress: number;
 }
 
 export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
@@ -21,8 +24,10 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [streamingProgress, setStreamingProgress] = useState(0);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const streamPlayerRef = useRef<AudioStreamPlayer | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -52,6 +57,67 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
       }
     }
   }, [selectedVoice]);
+
+  const speakWithElevenLabsStreamTTS = useCallback(async (text: string, callbacks?: SpeechCallbacks): Promise<boolean> => {
+    try {
+      setStreamingProgress(0);
+      
+      const streamCallbacks: AudioStreamCallbacks = {
+        onStart: () => {
+          setIsSpeaking(true);
+          callbacks?.onStart?.();
+        },
+        onEnd: () => {
+          setIsSpeaking(false);
+          setStreamingProgress(0);
+          streamPlayerRef.current = null;
+          callbacks?.onEnd?.();
+        },
+        onError: (error: Error) => {
+          console.warn('ElevenLabs streaming error:', error);
+          setIsSpeaking(false);
+          setStreamingProgress(0);
+          streamPlayerRef.current = null;
+          callbacks?.onError?.();
+        },
+        onProgress: (bytesReceived: number) => {
+          setStreamingProgress(bytesReceived);
+          callbacks?.onProgress?.(bytesReceived);
+        }
+      };
+
+      // Create the streaming player
+      const player = new AudioStreamPlayer(streamCallbacks);
+      streamPlayerRef.current = player;
+
+      // Make the streaming request to your updated API
+      const response = await fetch('/api/elevenlabs-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          voiceId: process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID
+        })
+      });
+
+      if (!response.ok) {
+        console.warn('ElevenLabs streaming API failed, falling back to regular TTS');
+        return false;
+      }
+
+      // Start playing the streamed response directly
+      await player.playStream(response);
+      
+      return true;
+    } catch (err) {
+      console.warn('ElevenLabs streaming TTS error:', err);
+      setStreamingProgress(0);
+      callbacks?.onError?.();
+      return false;
+    }
+  }, []);
 
   const speakWithElevenLabsTTS = useCallback(async (text: string, callbacks?: SpeechCallbacks): Promise<boolean> => {
     try {
@@ -89,37 +155,36 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
       
-      // Only call onStart when audio actually starts playing
       audio.onplaying = () => {
         setIsSpeaking(true);
-        if (callbacks?.onStart) callbacks.onStart();
+        callbacks?.onStart?.();
       };
       
       audio.onended = () => {
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl); // Clean up the blob URL
-        if (callbacks?.onEnd) callbacks.onEnd();
+        URL.revokeObjectURL(audioUrl);
+        callbacks?.onEnd?.();
       };
       
       audio.onerror = () => {
         console.warn('ElevenLabs audio playback failed');
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl); // Clean up the blob URL
-        if (callbacks?.onError) callbacks.onError();
+        URL.revokeObjectURL(audioUrl);
+        callbacks?.onError?.();
       };
       
       await audio.play();
       return true;
     } catch (err) {
       console.warn('ElevenLabs TTS error:', err);
-      if (callbacks?.onError) callbacks.onError();
+      callbacks?.onError?.();
       return false;
     }
   }, []);
 
   const speakWithBrowserTTS = useCallback((text: string, callbacks?: SpeechCallbacks) => {
     if (!isSupported || !text.trim()) {
-      if (callbacks?.onError) callbacks.onError();
+      callbacks?.onError?.();
       return;
     }
     
@@ -137,18 +202,18 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     
     utterance.onstart = () => {
       setIsSpeaking(true);
-      if (callbacks?.onStart) callbacks.onStart();
+      callbacks?.onStart?.();
     };
     
     utterance.onend = () => {
       setIsSpeaking(false);
-      if (callbacks?.onEnd) callbacks.onEnd();
+      callbacks?.onEnd?.();
     };
     
     utterance.onerror = (event) => {
       console.error('Error en síntesis de voz:', event.error);
       setIsSpeaking(false);
-      if (callbacks?.onError) callbacks.onError();
+      callbacks?.onError?.();
     };
     
     utteranceRef.current = utterance;
@@ -158,17 +223,33 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
   const speakText = useCallback(async (text: string, callbacks?: SpeechCallbacks) => {
     if (!text.trim() || isSpeaking) return;
     
-    // Don't set isSpeaking or call onStart here - let the actual audio events handle it
-    // Try ElevenLabs TTS first, fallback to browser TTS if it fails
-    const elevenLabsSuccess = await speakWithElevenLabsTTS(text, callbacks);
+    // Try ElevenLabs streaming TTS first
+    let elevenLabsSuccess = false;
+    
+    try {
+      elevenLabsSuccess = await speakWithElevenLabsStreamTTS(text, callbacks);
+    } catch (error) {
+      console.warn('ElevenLabs streaming failed, trying regular TTS:', error);
+    }
     
     if (!elevenLabsSuccess) {
-      // Fallback to browser speech synthesis
+      // Fallback to regular ElevenLabs TTS
+      elevenLabsSuccess = await speakWithElevenLabsTTS(text, callbacks);
+    }
+    
+    if (!elevenLabsSuccess) {
+      // Final fallback to browser speech synthesis
       speakWithBrowserTTS(text, callbacks);
     }
-  }, [isSpeaking, speakWithElevenLabsTTS, speakWithBrowserTTS]);
+  }, [isSpeaking, speakWithElevenLabsStreamTTS, speakWithElevenLabsTTS, speakWithBrowserTTS]);
 
   const stopSpeaking = useCallback(() => {
+    // Stop streaming audio if playing
+    if (streamPlayerRef.current) {
+      streamPlayerRef.current.stop();
+      streamPlayerRef.current = null;
+    }
+    
     // Stop ElevenLabs audio if playing
     if (audioRef.current) {
       audioRef.current.pause();
@@ -180,6 +261,8 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
       speechSynthesis.cancel();
       setIsSpeaking(false);
     }
+    
+    setStreamingProgress(0);
   }, [isSpeaking]);
 
   useEffect(() => {
@@ -189,6 +272,9 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
       }
       if (audioRef.current) {
         audioRef.current.pause();
+      }
+      if (streamPlayerRef.current) {
+        streamPlayerRef.current.stop();
       }
     };
   }, []);
@@ -200,6 +286,7 @@ export const useSpeechSynthesis = (): SpeechSynthesisHookReturn => {
     selectedVoice,
     setSelectedVoice,
     speakText,
-    stopSpeaking
+    stopSpeaking,
+    streamingProgress
   };
 };

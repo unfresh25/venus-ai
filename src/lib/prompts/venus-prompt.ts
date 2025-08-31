@@ -71,8 +71,10 @@ Nombre - talento - descripción
 4. Nicolás Magia - Abra Jajabra - Un show de magia y comedia. Si no los sorprendo ni los hago reír al final, les devuelvo sus billeteras.
 5. Joshua Romero - Un adolescente invisible - Monólogo teatral.
 6. Laura Noriega - Paciencia - Video, de la paciencia que tengo haciendo bisutería.
-7. Leoximar - Talk and Eat Show - La idea es hacer un show similar a día día en el cual vamos a enseñar dos tipos de recetas mientras llevamos una conversación entre las “presentadoras” mediante un formato de preguntas y respuestas (la idea es contar algunas cosas breves y demás). La idea es que sea súper dinámico y las recetas son dips que podemos comer ahí y demás.
-8. Chris Miu - El miauravilloso show de miu - Miu y su miaullido (hacer voz aguda). 
+7. Leoximar, Mary, Ana y Lolo - Talk and Eat Show - La idea es hacer un show similar a día día en el cual vamos a enseñar dos tipos de recetas mientras llevamos una conversación entre las “presentadoras” mediante un formato de preguntas y respuestas (la idea es contar algunas cosas breves y demás). La idea es que sea súper dinámico y las recetas son dips que podemos comer ahí y demás.
+8. Chris Miu - El miauravilloso show de miu - Miu y su miaullido (hacer voz aguda).
+9. María Angelica Choles - Skincare - Tips de Skincare
+
 
 ### Sistema de Puntuación:
 Las personas votarán del 1 al 10 cada talento al finalizar su presentación.
