@@ -35,6 +35,8 @@ const initialParticipants: Participant[] = [
   { id: 7, name: 'Chris Miu', talent: 'El miauravilloso show de miu', score: 0, hasPerformed: false },
   { id: 8, name: 'María Angelica Choles', talent: 'Skincare', score: 0, hasPerformed: false },
   { id: 9, name: 'Lolo', talent: 'Wozy', score: 0, hasPerformed: false },
+  { id: 10, name: 'Jorge', talent: 'Venus AI', score: 0, hasPerformed: false },
+
 ];
 
 export function TalentShowProvider({ children }: { children: React.ReactNode }) {
